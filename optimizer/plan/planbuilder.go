@@ -523,3 +523,20 @@ func splitWhere(where ast.ExprNode) []ast.ExprNode {
 	}
 	return conditions
 }
+
+type subqueryExtractor struct {
+	subqueries []*ast.SubqueryExpr
+}
+
+func (se *subqueryExtractor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
+	switch x := in.(type) {
+	case *ast.SubqueryExpr:
+		se.subqueries = append(se.subqueries, x)
+		return in, true
+	}
+	return in, false
+}
+
+func (se *subqueryExtractor) Leave(in ast.Node) (out ast.Node, ok bool) {
+	return in, true
+}

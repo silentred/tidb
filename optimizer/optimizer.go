@@ -67,7 +67,7 @@ type supportChecker struct {
 func (c *supportChecker) Enter(in ast.Node) (ast.Node, bool) {
 	switch x := in.(type) {
 	case *ast.SubqueryExpr:
-		c.unsupported = true
+		c.unsupported = false
 	case *ast.Join:
 		if x.Right != nil {
 			c.unsupported = true
