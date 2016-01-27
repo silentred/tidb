@@ -263,6 +263,7 @@ func (s *session) Retry() error {
 // ExecRestrictedSQL implements SQLHelper interface.
 // This is used for executing some restricted sql statements.
 func (s *session) ExecRestrictedSQL(ctx context.Context, sql string) (rset.Recordset, error) {
+	fmt.Println("---------ExecRestricted----------")
 	if ctx.Value(&sqlexec.RestrictedSQLExecutorKeyType{}) != nil {
 		// We do not support run this function concurrently.
 		// TODO: Maybe we should remove this restriction latter.
@@ -285,6 +286,7 @@ func (s *session) ExecRestrictedSQL(ctx context.Context, sql string) (rset.Recor
 	ctx.SetValue(&sqlexec.RestrictedSQLExecutorKeyType{}, true)
 	defer ctx.ClearValue(&sqlexec.RestrictedSQLExecutorKeyType{})
 	rs, err := st.Exec(ctx)
+	fmt.Println("---------ExecRestricted END----------")
 	return rs, errors.Trace(err)
 }
 

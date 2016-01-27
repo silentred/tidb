@@ -211,14 +211,6 @@ func (e *Evaluator) caseExpr(v *ast.CaseExpr) bool {
 	return true
 }
 
-func (e *Evaluator) subquery(v *ast.SubqueryExpr) bool {
-	return true
-}
-
-func (e *Evaluator) compareSubquery(v *ast.CompareSubqueryExpr) bool {
-	return true
-}
-
 func (e *Evaluator) columnName(v *ast.ColumnNameExpr) bool {
 	v.SetValue(v.Refer.Expr.GetValue())
 	return true
@@ -228,7 +220,15 @@ func (e *Evaluator) defaultExpr(v *ast.DefaultExpr) bool {
 	return true
 }
 
+func (e *Evaluator) compareSubquery(v *ast.CompareSubqueryExpr) bool {
+	return true
+}
+
 func (e *Evaluator) existsSubquery(v *ast.ExistsSubqueryExpr) bool {
+	return true
+}
+
+func (e *Evaluator) subquery(v *ast.SubqueryExpr) bool {
 	return true
 }
 

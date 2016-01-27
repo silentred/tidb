@@ -42,7 +42,7 @@ func (c *Compiler) Compile(ctx context.Context, node ast.StmtNode) (stmt.Stateme
 		if err := optimizer.Preprocess(node, is, ctx); err != nil {
 			return nil, errors.Trace(err)
 		}
-		p, err := optimizer.Optimize(ctx, node)
+		p, err := optimizer.Optimize(ctx, node, is)
 		if err != nil {
 			return nil, errors.Trace(err)
 		}

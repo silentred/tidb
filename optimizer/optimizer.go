@@ -27,7 +27,7 @@ import (
 
 // Optimize does optimization and creates a Plan.
 // The node must be prepared first.
-func Optimize(ctx context.Context, node ast.Node) (plan.Plan, error) {
+func Optimize(ctx context.Context, node ast.Node, is infoschema.InfoSchema) (plan.Plan, error) {
 	// We have to infer type again because after parameter is set, the expression type may change.
 	if err := InferType(node); err != nil {
 		return nil, errors.Trace(err)
@@ -35,7 +35,7 @@ func Optimize(ctx context.Context, node ast.Node) (plan.Plan, error) {
 	if err := logicOptimize(ctx, node); err != nil {
 		return nil, errors.Trace(err)
 	}
-	p, err := plan.BuildPlan(node)
+	p, err := plan.BuildPlan(node, is)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

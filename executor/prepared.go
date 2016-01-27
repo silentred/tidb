@@ -227,7 +227,7 @@ func (e *ExecuteExec) Build() error {
 			}
 			prepared.SchemaVersion = e.IS.SchemaMetaVersion()
 		}
-		plan, err := optimizer.Optimize(e.Ctx, prepared.Stmt)
+		plan, err := optimizer.Optimize(e.Ctx, prepared.Stmt, e.IS)
 		if err != nil {
 			return errors.Trace(err)
 		}

@@ -14,6 +14,8 @@
 package plan
 
 import (
+	"fmt"
+
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/ast"
 	"github.com/pingcap/tidb/infoschema"
@@ -37,8 +39,8 @@ const (
 
 // BuildPlan builds a plan from a node.
 // It returns ErrUnsupportedType if ast.Node type is not supported yet.
-func BuildPlan(node ast.Node) (Plan, error) {
-	var builder planBuilder
+func BuildPlan(node ast.Node, is infoschema.InfoSchema) (Plan, error) {
+	builder := planBuilder{is: is}
 	p := builder.build(node)
 	return p, builder.err
 }
@@ -48,6 +50,7 @@ func BuildPlan(node ast.Node) (Plan, error) {
 type planBuilder struct {
 	err    error
 	hasAgg bool
+	is     infoschema.InfoSchema
 }
 
 func (b *planBuilder) build(node ast.Node) Plan {
@@ -153,12 +156,29 @@ func (b *planBuilder) extractSelectAgg(sel *ast.SelectStmt) []*ast.AggregateFunc
 	return extractor.AggFuncs
 }
 
+func (b *planBuilder) buildSubquery(n ast.Node) {
+	// Extract subquery
+	sb := &subqueryBuilder{builder: b}
+	_, ok := n.Accept(sb)
+	if !ok {
+		fmt.Println("Extract subquery error")
+	}
+	fmt.Println("Subquery: ", len(sb.subqueries))
+	for _, sq := range sb.subqueries {
+		fmt.Println("SQ: ", sq)
+	}
+}
+
 func (b *planBuilder) buildSelect(sel *ast.SelectStmt) Plan {
+	fmt.Println("Build select")
 	var aggFuncs []*ast.AggregateFuncExpr
 	hasAgg := b.detectSelectAgg(sel)
 	if hasAgg {
 		aggFuncs = b.extractSelectAgg(sel)
 	}
+	// Build subquery
+	// Convert subquery to expr with plan
+	b.buildSubquery(sel)
 	var p Plan
 	if sel.From != nil {
 		p = b.buildJoin(sel)
@@ -524,19 +544,27 @@ func splitWhere(where ast.ExprNode) []ast.ExprNode {
 	return conditions
 }
 
-type subqueryExtractor struct {
+type subqueryBuilder struct {
 	subqueries []*ast.SubqueryExpr
+	builder    *planBuilder
 }
 
-func (se *subqueryExtractor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
+func (se *subqueryBuilder) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
 	switch x := in.(type) {
 	case *ast.SubqueryExpr:
 		se.subqueries = append(se.subqueries, x)
+		p := se.builder.build(x.Query)
+		sq := &SubQuery{
+			Plan: p,
+			IS:   se.builder.is,
+		}
+		return sq, true
+	case *ast.Join:
 		return in, true
 	}
 	return in, false
 }
 
-func (se *subqueryExtractor) Leave(in ast.Node) (out ast.Node, ok bool) {
+func (se *subqueryBuilder) Leave(in ast.Node) (out ast.Node, ok bool) {
 	return in, true
 }

@@ -142,6 +142,7 @@ func (a *statementAdapter) Exec(ctx context.Context) (rset.Recordset, error) {
 	if b.err != nil {
 		return nil, errors.Trace(b.err)
 	}
+	// Build subquery here
 
 	if executorExec, ok := e.(*ExecuteExec); ok {
 		err := executorExec.Build()
