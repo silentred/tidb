@@ -39,8 +39,8 @@ const (
 
 // BuildPlan builds a plan from a node.
 // It returns ErrUnsupportedType if ast.Node type is not supported yet.
-func BuildPlan(node ast.Node, is infoschema.InfoSchema) (Plan, error) {
-	builder := planBuilder{is: is}
+func BuildPlan(node ast.Node, sb SubQueryBuilder) (Plan, error) {
+	builder := planBuilder{sb: sb}
 	p := builder.build(node)
 	return p, builder.err
 }
@@ -50,7 +50,7 @@ func BuildPlan(node ast.Node, is infoschema.InfoSchema) (Plan, error) {
 type planBuilder struct {
 	err    error
 	hasAgg bool
-	is     infoschema.InfoSchema
+	sb     SubQueryBuilder
 }
 
 func (b *planBuilder) build(node ast.Node) Plan {
@@ -157,20 +157,17 @@ func (b *planBuilder) extractSelectAgg(sel *ast.SelectStmt) []*ast.AggregateFunc
 }
 
 func (b *planBuilder) buildSubquery(n ast.Node) {
-	// Extract subquery
-	sb := &subqueryBuilder{builder: b}
-	_, ok := n.Accept(sb)
+	sv := &subqueryVisitor{
+		sb:      b.sb,
+		builder: b,
+	}
+	_, ok := n.Accept(sv)
 	if !ok {
 		fmt.Println("Extract subquery error")
-	}
-	fmt.Println("Subquery: ", len(sb.subqueries))
-	for _, sq := range sb.subqueries {
-		fmt.Println("SQ: ", sq)
 	}
 }
 
 func (b *planBuilder) buildSelect(sel *ast.SelectStmt) Plan {
-	fmt.Println("Build select")
 	var aggFuncs []*ast.AggregateFuncExpr
 	hasAgg := b.detectSelectAgg(sel)
 	if hasAgg {
@@ -544,20 +541,23 @@ func splitWhere(where ast.ExprNode) []ast.ExprNode {
 	return conditions
 }
 
-type subqueryBuilder struct {
-	subqueries []*ast.SubqueryExpr
-	builder    *planBuilder
+type SubQueryBuilder interface {
+	Build(p Plan) ast.SubQuery
 }
 
-func (se *subqueryBuilder) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
+type subqueryVisitor struct {
+	subqueries []ast.SubQuery
+	builder    *planBuilder
+	sb         SubQueryBuilder
+}
+
+func (se *subqueryVisitor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
 	switch x := in.(type) {
 	case *ast.SubqueryExpr:
-		se.subqueries = append(se.subqueries, x)
+		fmt.Println("Find Subquery!!!!")
 		p := se.builder.build(x.Query)
-		sq := &SubQuery{
-			Plan: p,
-			IS:   se.builder.is,
-		}
+		sq := se.sb.Build(p)
+		se.subqueries = append(se.subqueries, sq)
 		return sq, true
 	case *ast.Join:
 		return in, true
@@ -565,6 +565,6 @@ func (se *subqueryBuilder) Enter(in ast.Node) (out ast.Node, skipChildren bool) 
 	return in, false
 }
 
-func (se *subqueryBuilder) Leave(in ast.Node) (out ast.Node, ok bool) {
+func (se *subqueryVisitor) Leave(in ast.Node) (out ast.Node, ok bool) {
 	return in, true
 }

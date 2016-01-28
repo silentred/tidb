@@ -14,6 +14,7 @@
 package executor
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/juju/errors"
@@ -561,7 +562,9 @@ func (e *SelectFieldsExec) Next() (*Row, error) {
 		RowKeys: rowKeys,
 		Data:    make([]interface{}, len(e.ResultFields)),
 	}
+	fmt.Println("Run SelectField")
 	for i, field := range e.ResultFields {
+		fmt.Printf("Eval %T\n", field.Expr)
 		val, err := evaluator.Eval(e.ctx, field.Expr)
 		if err != nil {
 			return nil, errors.Trace(err)

@@ -16,6 +16,7 @@ package ast
 import (
 	"regexp"
 
+	"github.com/pingcap/tidb/context"
 	"github.com/pingcap/tidb/model"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/parser/opcode"
@@ -240,7 +241,7 @@ type SubQuery interface {
 	// rowCount < 0 means no limit.
 	// If the ColumnCount is 1, we will return a column result like {1, 2, 3},
 	// otherwise, we will return a table result like {{1, 1}, {2, 2}}.
-	EvalRows() ([]interface{}, error)
+	EvalRows(ctx context.Context, rowCount int) ([]interface{}, error)
 
 	// ColumnCount returns column count for the sub query.
 	ColumnCount() (int, error)
